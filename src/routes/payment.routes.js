@@ -9,6 +9,9 @@ router.get('/test', paymentController.testPayment);
 // Create Invoice endpoint: POST /api/payment/create-invoice
 router.post('/create-invoice', paymentController.createInvoice);
 
+// Create QR Code endpoint: POST /api/payment/create-qr
+router.post('/create-qr', paymentController.createQrCode);
+
 // Webhook endpoint: POST /api/payment/webhook
 router.post('/webhook', verifyXenditWebhook, paymentController.handleWebhook);
 

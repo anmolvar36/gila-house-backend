@@ -9,6 +9,10 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 initSocket(server);
 
+// Initialize Cron Jobs
+const { initCronJobs } = require('./src/cron/reports.cron');
+initCronJobs();
+
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

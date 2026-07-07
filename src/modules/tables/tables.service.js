@@ -78,8 +78,43 @@ class TablesService {
         }
       }
     } else if (status === 'available') {
-      // If table becomes available, we might want to mark the pending order as cancelled or handled
-      // But usually it's handled via "Finalize" in the UI which marks it as paid.
+      // If table becomes available, we mark the pending order as paid
+      if (extraData && extraData.paymentMethod) {
+        const [existingOrders] = await pool.execute(
+          'SELECT id, grand_total FROM orders WHERE table_id = ? AND payment_status = "pending" AND deletedAt IS NULL',
+          [id]
+        );
+
+        if (existingOrders.length > 0) {
+          const orderId = existingOrders[0].id;
+          const amount = existingOrders[0].grand_total;
+          
+          // Map frontend payment method names to DB-friendly values
+          const methodMap = {
+            'cash': 'cash', 'Cash': 'cash',
+            'card': 'card', 'Card': 'card',
+            'QR Code': 'qr_code', 'qr_code': 'qr_code', 'qr code': 'qr_code',
+            'Bank': 'bank_transfer', 'bank': 'bank_transfer', 'bank_transfer': 'bank_transfer'
+          };
+          const dbMethod = methodMap[extraData.paymentMethod] || 'cash';
+
+          // Update order to paid
+          await pool.execute(
+            'UPDATE orders SET payment_status = "paid", order_status = "delivered" WHERE id = ?',
+            [orderId]
+          );
+
+          // Record the transaction
+          try {
+             await pool.execute(
+               'INSERT INTO transactions (transaction_code, total_amount, transaction_status, payment_gateway) VALUES (?, ?, ?, ?)',
+               [`TXN-TBL-${id}-${Date.now()}`, amount, 'completed', dbMethod]
+             );
+          } catch(e) {
+             console.error("Error inserting transaction", e);
+          }
+        }
+      }
     }
 
     // Notify all clients about table status change

@@ -70,7 +70,27 @@ class OrdersService {
 
       await connection.commit();
 
-      // 3. Socket Notification
+      // 3. Record Transaction if paid
+      if (orderData.payment_status === 'paid' && orderData.payment_method) {
+        const methodMap = {
+          'cash': 'cash', 'Cash': 'cash',
+          'card': 'card', 'Card': 'card',
+          'qr_code': 'qr_code', 'QR Code': 'qr_code', 'qr code': 'qr_code',
+          'bank': 'bank_transfer', 'Bank': 'bank_transfer', 'bank_transfer': 'bank_transfer',
+          'upi': 'upi', 'UPI': 'upi'
+        };
+        const dbMethod = methodMap[orderData.payment_method] || 'cash';
+        try {
+          await pool.execute(
+            'INSERT INTO transactions (transaction_code, total_amount, transaction_status, payment_gateway) VALUES (?, ?, ?, ?)',
+            [`TXN-ORD-${orderId}-${Date.now()}`, grandTotal, 'completed', dbMethod]
+          );
+        } catch (txnErr) {
+          console.error('Failed to record transaction:', txnErr);
+        }
+      }
+
+      // 4. Socket Notification
       const io = getIO();
       io.emit('new_order', { id: orderId, order_number: dbOrderData.order_number });
       io.to('chef').emit('new_kitchen_ticket', { orderId });

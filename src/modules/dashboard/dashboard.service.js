@@ -23,6 +23,9 @@ class DashboardService {
       case 'financial year':
         filter = `AND ${field} >= DATE(CONCAT(IF(MONTH(CURDATE()) < 4, YEAR(CURDATE()) - 1, YEAR(CURDATE())), "-04-01"))`;
         break;
+      case 'all time':
+        filter = '';
+        break;
       default:
         filter = '';
     }
@@ -52,6 +55,26 @@ class DashboardService {
       ORDER BY DATE(createdAt) ASC
     `);
 
+    // Monthly orders chart data
+    const [monthlyOrders] = await pool.execute(`
+      SELECT DATE_FORMAT(createdAt, '%b %d') as month, COUNT(*) as count 
+      FROM orders 
+      WHERE 1=1 
+      ${dateFilter}
+      GROUP BY DATE(createdAt), DATE_FORMAT(createdAt, '%b %d') 
+      ORDER BY DATE(createdAt) ASC
+    `);
+
+    // Monthly guests chart data
+    const [monthlyGuests] = await pool.execute(`
+      SELECT DATE_FORMAT(createdAt, '%b %d') as month, SUM(guests_count) as count 
+      FROM reservations 
+      WHERE 1=1 
+      ${dateFilter}
+      GROUP BY DATE(createdAt), DATE_FORMAT(createdAt, '%b %d') 
+      ORDER BY DATE(createdAt) ASC
+    `);
+
     return {
       stats: {
         total_revenue: revenue[0].total_revenue || 0,
@@ -64,7 +87,9 @@ class DashboardService {
         ready_orders: readyOrders[0].ready_orders
       },
       charts: {
-        monthlyRevenue
+        monthlyRevenue,
+        monthlyOrders,
+        monthlyGuests
       }
     };
   }
@@ -110,10 +135,22 @@ class DashboardService {
       GROUP BY mc.id
     `);
 
+    // Payment method breakdown from transactions
+    const [paymentMethodBreakdown] = await pool.execute(`
+      SELECT 
+        COALESCE(payment_gateway, 'cash') as method,
+        COUNT(*) as count,
+        SUM(total_amount) as revenue
+      FROM transactions
+      WHERE transaction_status = 'completed'
+      GROUP BY payment_gateway
+    `);
+
     return {
       topDishes,
       staffPerformance,
-      categorySplit
+      categorySplit,
+      paymentMethodBreakdown
     };
   }
 

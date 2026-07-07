@@ -46,6 +46,23 @@ class OrdersController {
     }
   }
 
+  async createGuestOrder(req, res) {
+    try {
+      const { orderData, items } = req.body;
+      // Force user_id to null for guest orders to prevent spoofing
+      orderData.user_id = null;
+      
+      const { orderId, serviceChargeAmount, grandTotal } = await ordersService.createOrder(orderData, items);
+      return sendSuccess(res, 'Guest order created successfully', { 
+        id: orderId,
+        serviceChargeAmount,
+        updatedGrandTotal: grandTotal
+      }, 201);
+    } catch (err) {
+      return sendError(res, err.message);
+    }
+  }
+
   async updateStatus(req, res) {
     try {
       const { status } = req.body;

@@ -25,7 +25,7 @@ class ReservationsModel extends BaseModel {
       FROM reservations r 
       LEFT JOIN guests g ON r.guest_id = g.id 
       LEFT JOIN restaurant_tables rt ON r.table_id = rt.id AND r.booking_type = 'table'
-      LEFT JOIN rooms rm ON r.table_id = rm.id AND r.booking_type = 'room'
+      LEFT JOIN rooms rm ON r.room_id = rm.id AND r.booking_type = 'room'
       WHERE r.deletedAt IS NULL
     `;
     const params = [];

@@ -3,6 +3,10 @@ const router = express.Router();
 const serviceController = require('./services.controller');
 const { authenticate } = require('../../middleware/auth.middleware');
 
+// Public Guest Routes
+router.get('/guest', serviceController.getAllServices);
+router.post('/guest/bookings', serviceController.createGuestBooking);
+
 router.use(authenticate);
 
 // Service Routes

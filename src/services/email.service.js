@@ -6,7 +6,7 @@ class EmailService {
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: process.env.SMTP_PORT || 587,
-      secure: false, // true for 465, false for other ports
+      secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -14,7 +14,7 @@ class EmailService {
     });
   }
 
-  async sendEmail(to, subject, html) {
+  async sendEmail(to, subject, html, attachments = []) {
     try {
       if (!process.env.SMTP_USER) {
         logger.warn('SMTP credentials not configured. Skipping email send.');
@@ -26,6 +26,7 @@ class EmailService {
         to,
         subject,
         html,
+        attachments,
       });
 
       logger.info(`Email sent: ${info.messageId}`);

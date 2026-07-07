@@ -5,6 +5,9 @@ const { authenticate, authorize } = require('../../middleware/auth.middleware');
 const { validate } = require('../../validators/common.validator');
 const { createOrderSchema, updateOrderStatusSchema } = require('./orders.validation');
 
+// Public route for guest orders (no authentication required)
+router.post('/guest', validate(createOrderSchema), ordersController.createGuestOrder);
+
 router.use(authenticate);
 
 router.get('/', ordersController.getAllOrders);

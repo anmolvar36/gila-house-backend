@@ -23,7 +23,7 @@ class PaymentController {
    */
   async createInvoice(req, res) {
     try {
-      const { bookingId, guestName, email, phone, amount, description } = req.body;
+      const { bookingId, guestName, email, phone, amount, description, paymentMethods } = req.body;
 
       // Basic Validation
       if (!bookingId) return res.status(400).json({ success: false, message: 'bookingId is required' });
@@ -38,7 +38,8 @@ class PaymentController {
         email,
         phone,
         amount,
-        description
+        description,
+        paymentMethods
       });
 
       return res.status(201).json(result);
@@ -47,6 +48,33 @@ class PaymentController {
       return res.status(500).json({
         success: false,
         message: 'Failed to create invoice',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Create QR Code endpoint handler
+   */
+  async createQrCode(req, res) {
+    try {
+      const { bookingId, amount, description } = req.body;
+
+      if (!bookingId) return res.status(400).json({ success: false, message: 'bookingId is required' });
+      if (amount === undefined || amount <= 0) return res.status(400).json({ success: false, message: 'amount must be greater than 0' });
+
+      const result = await paymentService.createQrCode({
+        bookingId,
+        amount,
+        description
+      });
+
+      return res.status(201).json(result);
+    } catch (error) {
+      console.error('Create QR Code Controller Error:', error.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create QR code',
         error: error.message
       });
     }
