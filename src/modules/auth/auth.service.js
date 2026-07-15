@@ -188,15 +188,10 @@ class AuthService {
     };
   }
 
-  async updatePassword(userId, currentPassword, newPassword) {
+  async updatePassword(userId, newPassword) {
     const user = await authModel.findById(userId);
     if (!user) {
       throw new Error('User not found');
-    }
-
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      throw new Error('Current password is incorrect');
     }
 
     const salt = await bcrypt.genSalt(10);
