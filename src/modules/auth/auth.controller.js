@@ -1,6 +1,30 @@
 const authService = require('./auth.service');
 
 class AuthController {
+  async register(req, res) {
+    try {
+      const { name, email, phone, password } = req.body;
+      if (!name || !email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Name, email, and password are required'
+        });
+      }
+
+      const result = await authService.register({ name, email, phone, password });
+
+      res.json({
+        success: true,
+        message: 'Registration successful',
+        data: result
+      });
+    } catch (err) {
+      res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+  }
   async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -85,7 +109,126 @@ class AuthController {
       data: req.user
     });
   }
+
+  async updatePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.id;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password and new password are required'
+        });
+      }
+
+      await authService.updatePassword(userId, currentPassword, newPassword);
+      
+      res.json({
+        success: true,
+        message: 'Password updated successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async updateProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const profileData = req.body;
+      
+      const updatedUser = await authService.updateProfile(userId, profileData);
+      
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedUser
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async requestPasswordReset(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required'
+        });
+      }
+
+      await authService.requestPasswordReset(email);
+
+      res.json({
+        success: true,
+        message: 'OTP sent to email successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async verifyOTP(req, res) {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email and OTP are required'
+        });
+      }
+
+      await authService.verifyOTP(email, otp);
+
+      res.json({
+        success: true,
+        message: 'OTP verified successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  async resetPasswordWithOTP(req, res) {
+    try {
+      const { email, otp, newPassword } = req.body;
+      if (!email || !otp || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email, OTP, and new password are required'
+        });
+      }
+
+      await authService.resetPasswordWithOTP(email, otp, newPassword);
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully'
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
-module.exports = new AuthController();
 
+
+module.exports = new AuthController();

@@ -2,6 +2,7 @@ const ordersRepository = require('./orders.repository');
 const { getIO } = require('../../sockets/socket.manager');
 const notificationService = require('../notifications/notifications.service');
 const pool = require('../../database/connection');
+const dashboardService = require('../dashboard/dashboard.service');
 
 class OrdersService {
   async getAllOrders(filters) {
@@ -12,7 +13,16 @@ class OrdersService {
     return await ordersRepository.getOrderWithItems(id);
   }
 
-  async createOrder(orderData, items) {
+  async getAuditTrail(id) {
+    const pool = require('../../database/connection');
+    const [logs] = await pool.execute(
+      'SELECT status, action, user_name, created_at FROM order_status_logs WHERE order_id = ? ORDER BY created_at DESC',
+      [id]
+    );
+    return logs;
+  }
+
+  async createOrder(orderData, items, userName = 'System') {
     // 1. Recalculate subtotal securely from items to avoid trusting frontend values
     const calculatedSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.unit_price) * parseInt(item.quantity)), 0);
     
@@ -39,6 +49,7 @@ class OrdersService {
     const dbOrderData = {
       order_number: orderData.order_number,
       customer_id: orderData.customer_id,
+      user_id: orderData.user_id,
       table_id: orderData.table_id,
       order_type: orderData.order_type,
       subtotal: calculatedSubtotal,
@@ -67,6 +78,12 @@ class OrdersService {
           [orderId, item.menu_item_id, item.quantity, item.unit_price, item.total_price]
         );
       }
+      
+      // 5. Audit Log
+      await connection.execute(
+        'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
+        [orderId, 'new', 'Ticket Generated', userName]
+      );
 
       await connection.commit();
 
@@ -108,6 +125,13 @@ class OrdersService {
         targetRole: 'ADMIN'
       });
 
+      // 5. Activity Log
+      await dashboardService.insertActivityLog(
+        `New Order Placed: #${dbOrderData.order_number} by ${userName}`,
+        'order', 'orders', orderId
+      );
+      io.emit('activity_log_update');
+
       return {
         orderId,
         serviceChargeAmount,
@@ -121,7 +145,7 @@ class OrdersService {
     }
   }
 
-  async updateOrderStatus(id, status) {
+  async updateOrderStatus(id, status, userName = 'System') {
     const result = await ordersRepository.update(id, { order_status: status });
     
     // Socket Notification
@@ -135,7 +159,77 @@ class OrdersService {
       targetRole: status === 'Ready' ? 'WAITER' : 'ADMIN'
     });
     
+    let action = 'Status Updated';
+    if (status === 'pending') action = 'Sent to Kitchen';
+    else if (status === 'cooking') action = 'Preparation Started';
+    else if (status === 'ready') action = 'Quality Checked & Ready';
+    else if (status === 'delivered') action = 'Order Delivered';
+    else if (status === 'cancelled') action = 'Order Voided';
+    
+    await pool.execute(
+      'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
+      [id, status, action, userName]
+    );
+
+    // Activity Log
+    await dashboardService.insertActivityLog(
+      `Order #${id} — ${action} by ${userName}`,
+      'order', 'orders', id
+    );
+    io.emit('activity_log_update');
+
     return result;
+  }
+
+  async payOrder(id, paymentMethod) {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      const [orders] = await connection.execute(
+        'SELECT * FROM orders WHERE id = ? AND deletedAt IS NULL',
+        [id]
+      );
+      if (orders.length === 0) throw new Error('Order not found');
+      const order = orders[0];
+
+      if (order.payment_status === 'paid') {
+        throw new Error('Order is already paid');
+      }
+
+      // Update order status to new (sent to kitchen) and payment_status to paid
+      await connection.execute(
+        'UPDATE orders SET payment_status = "paid", order_status = "new", payment_method = ? WHERE id = ?',
+        [paymentMethod, id]
+      );
+
+      // Create transaction log
+      const txnCode = `TXN-ORD-${id}-${Date.now()}`;
+      await connection.execute(
+        'INSERT INTO transactions (transaction_code, total_amount, transaction_status, payment_gateway) VALUES (?, ?, ?, ?)',
+        [txnCode, order.grand_total, 'completed', paymentMethod]
+      );
+
+      // Log status change
+      await connection.execute(
+        'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
+        [id, 'new', 'Payment Confirmed - Sent to Kitchen', 'System']
+      );
+
+      await connection.commit();
+
+      // Emit socket notification so kitchen/waiter updates instantly
+      const io = getIO();
+      io.emit('order_update', { id, status: 'new' });
+      io.emit('activity_log_update');
+
+      return { success: true };
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   }
 }
 
