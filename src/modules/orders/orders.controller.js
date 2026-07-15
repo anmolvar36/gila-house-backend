@@ -4,7 +4,16 @@ const { sendSuccess, sendError } = require('../../utils/response.formatter');
 class OrdersController {
   async getAllOrders(req, res) {
     try {
-      const { status, customerId, userId } = req.query;
+      let { status, customerId, userId } = req.query;
+      
+      // Enforce data privacy: Customers can ONLY see their own orders
+      const userRole = (req.user?.role_name || '').toLowerCase().trim();
+      if (userRole === 'customer') {
+        userId = req.user.id;
+        // Optionally clear customerId to prevent them from querying by guest profile
+        customerId = undefined; 
+      }
+
       const orders = await ordersService.getAllOrders({ status, customerId, userId });
       const mappedOrders = orders.map(order => ({
         ...order,
