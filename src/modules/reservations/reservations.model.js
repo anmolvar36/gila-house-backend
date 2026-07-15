@@ -40,6 +40,11 @@ class ReservationsModel extends BaseModel {
       params.push(filters.date);
     }
 
+    if (filters.customerEmail) {
+      sql += ` AND g.email = ?`;
+      params.push(filters.customerEmail);
+    }
+
     sql += ` ORDER BY r.id DESC`;
 
     const [rows] = await pool.execute(sql, params);
