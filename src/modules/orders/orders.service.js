@@ -59,7 +59,7 @@ class OrdersService {
       service_charge_amount: serviceChargeAmount,
       grand_total: grandTotal,
       payment_status: orderData.payment_status || 'pending',
-      order_status: orderData.order_status || 'new',
+      order_status: orderData.order_status || 'pending',
       assigned_waiter: orderData.assigned_waiter,
       assigned_chef: orderData.assigned_chef
     };
@@ -82,7 +82,7 @@ class OrdersService {
       // 5. Audit Log
       await connection.execute(
         'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
-        [orderId, 'new', 'Ticket Generated', userName]
+        [orderId, 'pending', 'Ticket Generated', userName]
       );
 
       await connection.commit();
@@ -197,9 +197,9 @@ class OrdersService {
         throw new Error('Order is already paid');
       }
 
-      // Update order status to new (sent to kitchen) and payment_status to paid
+      // Update order status to pending (sent to kitchen) and payment_status to paid
       await connection.execute(
-        'UPDATE orders SET payment_status = "paid", order_status = "new", payment_method = ? WHERE id = ?',
+        'UPDATE orders SET payment_status = "paid", order_status = "pending", payment_method = ? WHERE id = ?',
         [paymentMethod, id]
       );
 
@@ -213,14 +213,14 @@ class OrdersService {
       // Log status change
       await connection.execute(
         'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
-        [id, 'new', 'Payment Confirmed - Sent to Kitchen', 'System']
+        [id, 'pending', 'Payment Confirmed - Sent to Kitchen', 'System']
       );
 
       await connection.commit();
 
       // Emit socket notification so kitchen/waiter updates instantly
       const io = getIO();
-      io.emit('order_update', { id, status: 'new' });
+      io.emit('order_update', { id, status: 'pending' });
       io.emit('activity_log_update');
 
       return { success: true };
