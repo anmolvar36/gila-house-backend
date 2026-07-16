@@ -119,6 +119,19 @@ class ConciergeController {
       res.status(500).json({ success: false, message: err.message });
     }
   }
+
+  async clearChat(req, res) {
+    try {
+      const { id } = req.params;
+      await conciergeService.clearChat(id);
+      res.json({
+        success: true,
+        message: 'Chat cleared successfully'
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
 }
 
 module.exports = new ConciergeController();

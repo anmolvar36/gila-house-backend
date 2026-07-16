@@ -96,6 +96,17 @@ class ConciergeService {
 
     return true;
   }
+
+  async clearChat(ticketId) {
+    const sql = 'DELETE FROM support_messages WHERE ticket_id = ?';
+    await pool.execute(sql, [ticketId]);
+
+    const io = getIO();
+    io.to(`ticket_${ticketId}`).emit('clear_chat', { ticketId: Number(ticketId) });
+    io.to('staff').emit('clear_chat', { ticketId: Number(ticketId) });
+
+    return true;
+  }
 }
 
 module.exports = new ConciergeService();

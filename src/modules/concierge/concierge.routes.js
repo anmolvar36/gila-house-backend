@@ -14,5 +14,6 @@ router.get('/tickets', conciergeController.getTickets);
 router.post('/tickets', conciergeController.createTicket);
 router.get('/tickets/:id/messages', conciergeController.getMessages);
 router.post('/messages', conciergeController.sendMessage);
+router.delete('/tickets/:id/messages', conciergeController.clearChat);
 
 module.exports = router;
