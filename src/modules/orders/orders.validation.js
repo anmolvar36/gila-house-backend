@@ -16,7 +16,7 @@ const createOrderSchema = Joi.object({
     service_charge_amount: Joi.number().optional(),
     grand_total: Joi.number().required(),
     payment_status: Joi.string().valid('pending', 'partial', 'paid', 'refunded').optional(),
-    order_status: Joi.string().valid('new', 'pending', 'cooking', 'ready', 'delivered', 'cancelled').optional()
+    order_status: Joi.string().valid('new', 'pending', 'cooking', 'ready', 'delivered', 'cancelled', 'Draft', 'Waiting Payment', 'Paid', 'Confirmed', 'Preparing', 'Served', 'Completed', 'Refunded').optional()
   }).required(),
   items: Joi.array().items(
     Joi.object({
@@ -29,7 +29,7 @@ const createOrderSchema = Joi.object({
 });
 
 const updateOrderStatusSchema = Joi.object({
-  status: Joi.string().valid('new', 'pending', 'cooking', 'ready', 'delivered', 'cancelled').required()
+  status: Joi.string().valid('new', 'pending', 'cooking', 'ready', 'delivered', 'cancelled', 'Draft', 'Waiting Payment', 'Paid', 'Confirmed', 'Preparing', 'Served', 'Completed', 'Refunded').required()
 });
 
 module.exports = {
