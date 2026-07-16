@@ -8,7 +8,7 @@ class ConciergeModel extends BaseModel {
 
   async findActiveTickets() {
     const sql = `
-      SELECT t.*, u.full_name as guest_name,
+      SELECT t.*, u.full_name as guest_name, u.phone as guest_phone,
       COALESCE((SELECT message FROM support_messages WHERE ticket_id = t.id ORDER BY createdAt DESC LIMIT 1), 'New request') as last_message,
       COALESCE((SELECT createdAt FROM support_messages WHERE ticket_id = t.id ORDER BY createdAt DESC LIMIT 1), t.createdAt) as last_message_at
       FROM support_tickets t 
