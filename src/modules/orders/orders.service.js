@@ -67,6 +67,14 @@ class OrdersService {
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
+    console.log('[OrdersService] Creating order with DB payload:', {
+      order_number: dbOrderData.order_number,
+      order_type: dbOrderData.order_type,
+      payment_status: dbOrderData.payment_status,
+      order_status: dbOrderData.order_status
+    });
+    console.log('[OrdersService] Allowed order_status values: new, pending, cooking, ready, delivered, cancelled');
+
     try {
       // 1. Create Order
       const orderId = await ordersRepository.create(dbOrderData);
