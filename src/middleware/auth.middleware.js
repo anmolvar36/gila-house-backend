@@ -28,7 +28,15 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    req.user = rows[0];
+    const user = rows[0];
+
+    // If authenticated via Google, restrict session to customer role
+    if (decoded.login_method === 'google') {
+      user.role_name = 'customer';
+      user.is_google_session = true;
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     return res.status(401).json({
@@ -47,8 +55,8 @@ const authorize = (...roles) => {
     const userRole = (req.user.role_name || '').toLowerCase().trim();
     const authorizedRoles = roles.flat().map(r => String(r).toLowerCase().trim());
     
-    // Always allow admin role for any staff-level resource
-    const isSystemAdmin = userRole === 'admin' || Number(req.user.role_id) === 1 || req.user.email === 'admin@gilahouse.com';
+    // Always allow admin role for any staff-level resource, unless it is a Google session which is strictly for customers
+    const isSystemAdmin = !req.user.is_google_session && (userRole === 'admin' || Number(req.user.role_id) === 1 || req.user.email === 'admin@gilahouse.com');
     
     if (authorizedRoles.includes(userRole) || isSystemAdmin) {
       return next();

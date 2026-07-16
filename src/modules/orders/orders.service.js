@@ -60,13 +60,21 @@ class OrdersService {
       service_charge_amount: serviceChargeAmount,
       grand_total: grandTotal,
       payment_status: orderData.payment_status || 'pending',
-      order_status: orderData.order_status || 'new',
+      order_status: orderData.order_status || (orderData.payment_status === 'paid' ? 'Confirmed' : 'Waiting Payment'),
       assigned_waiter: orderData.assigned_waiter,
       assigned_chef: orderData.assigned_chef
     };
 
     const connection = await pool.getConnection();
     await connection.beginTransaction();
+
+    console.log('[OrdersService] Creating order with DB payload:', {
+      order_number: dbOrderData.order_number,
+      order_type: dbOrderData.order_type,
+      payment_status: dbOrderData.payment_status,
+      order_status: dbOrderData.order_status
+    });
+    console.log('[OrdersService] Allowed order_status values: Draft, Waiting Payment, Paid, Confirmed, Preparing, Ready, Served, Completed, Cancelled, Refunded, new, pending, cooking, delivered');
 
     try {
       // 1. Create Order
@@ -83,7 +91,7 @@ class OrdersService {
       // 5. Audit Log
       await connection.execute(
         'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
-        [orderId, 'new', 'Ticket Generated', userName]
+        [orderId, dbOrderData.order_status, 'Ticket Generated', userName]
       );
 
       await connection.commit();
@@ -115,15 +123,16 @@ class OrdersService {
 
       // 4. Socket Notification
       const io = getIO();
-      io.emit('new_order', { id: orderId, order_number: dbOrderData.order_number });
-      io.to('chef').emit('new_kitchen_ticket', { orderId });
-
-      // 4. Save Notification
-      await notificationService.createNotification({
-        notification_type: 'ORDER',
-        message: `New Order Received: #${dbOrderData.order_number}`,
-        targetRole: 'CHEF'
-      });
+      io.emit('new_order', { ...dbOrderData, id: orderId });
+      
+      if (dbOrderData.payment_status === 'paid') {
+        io.to('chef').emit('new_kitchen_ticket', { orderId });
+        await notificationService.createNotification({
+          notification_type: 'ORDER',
+          message: `New Order Received: #${dbOrderData.order_number}`,
+          targetRole: 'CHEF'
+        });
+      }
       
       await notificationService.createNotification({
         notification_type: 'ORDER',
@@ -211,9 +220,9 @@ class OrdersService {
         throw new Error('Order is already paid');
       }
 
-      // Update order status to new (sent to kitchen) and payment_status to paid
+      // Update order status to Confirmed (sent to kitchen) and payment_status to paid
       await connection.execute(
-        'UPDATE orders SET payment_status = "paid", order_status = "new", payment_method = ? WHERE id = ?',
+        'UPDATE orders SET payment_status = "paid", order_status = "Confirmed", payment_method = ? WHERE id = ?',
         [paymentMethod, id]
       );
 
@@ -227,7 +236,7 @@ class OrdersService {
       // Log status change
       await connection.execute(
         'INSERT INTO order_status_logs (order_id, status, action, user_name) VALUES (?, ?, ?, ?)',
-        [id, 'new', 'Payment Confirmed - Sent to Kitchen', 'System']
+        [id, 'Confirmed', 'Payment Confirmed - Sent to Kitchen', 'System']
       );
 
       await connection.commit();
@@ -239,7 +248,16 @@ class OrdersService {
 
       // Emit socket notification so kitchen/waiter updates instantly
       const io = getIO();
-      io.emit('order_update', { id, status: 'new' });
+      io.emit('order_update', { id, status: 'Confirmed', payment_status: 'paid' });
+      io.to('chef').emit('new_kitchen_ticket', { orderId: id });
+      
+      const notificationService = require('../../services/notification.service');
+      await notificationService.createNotification({
+        notification_type: 'ORDER',
+        message: `Order #${id} Paid & Confirmed`,
+        targetRole: 'CHEF'
+      });
+      
       io.emit('activity_log_update');
 
       return { success: true };
