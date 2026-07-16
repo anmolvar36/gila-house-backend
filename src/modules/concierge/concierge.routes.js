@@ -6,6 +6,7 @@ const { authenticate, authorize } = require('../../middleware/auth.middleware');
 // Guest Routes (Public or simplified auth)
 router.get('/guest/ticket/:guestId', conciergeController.getGuestTicket);
 router.post('/guest/messages', conciergeController.sendGuestMessage);
+router.delete('/messages/:id', conciergeController.deleteMessage);
 
 // Staff Routes (Protected)
 router.use(authenticate);
