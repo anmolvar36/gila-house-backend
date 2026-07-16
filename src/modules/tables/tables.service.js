@@ -1,6 +1,7 @@
 const tablesModel = require('./tables.model');
 const pool = require('../../database/connection');
 const { getIO } = require('../../sockets/socket.manager');
+const customerService = require('../customer/customer.service');
 
 class TablesService {
   async getAllTables() {
@@ -81,13 +82,14 @@ class TablesService {
       // If table becomes available, we mark the pending order as paid
       if (extraData && extraData.paymentMethod) {
         const [existingOrders] = await pool.execute(
-          'SELECT id, grand_total FROM orders WHERE table_id = ? AND payment_status = "pending" AND deletedAt IS NULL',
+          'SELECT id, grand_total, customer_id FROM orders WHERE table_id = ? AND payment_status = "pending" AND deletedAt IS NULL',
           [id]
         );
 
         if (existingOrders.length > 0) {
           const orderId = existingOrders[0].id;
           const amount = existingOrders[0].grand_total;
+          const customerId = existingOrders[0].customer_id;
           
           // Map frontend payment method names to DB-friendly values
           const methodMap = {
@@ -112,6 +114,11 @@ class TablesService {
              );
           } catch(e) {
              console.error("Error inserting transaction", e);
+          }
+
+          // Recalculate customer analytics
+          if (customerId) {
+            await customerService.recalculateCustomerAnalytics(customerId);
           }
         }
       }

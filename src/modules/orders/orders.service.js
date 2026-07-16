@@ -3,6 +3,7 @@ const { getIO } = require('../../sockets/socket.manager');
 const notificationService = require('../notifications/notifications.service');
 const pool = require('../../database/connection');
 const dashboardService = require('../dashboard/dashboard.service');
+const customerService = require('../customer/customer.service');
 
 class OrdersService {
   async getAllOrders(filters) {
@@ -86,6 +87,11 @@ class OrdersService {
       );
 
       await connection.commit();
+
+      // Recalculate customer analytics if immediately paid
+      if (orderData.payment_status === 'paid' && dbOrderData.customer_id) {
+        await customerService.recalculateCustomerAnalytics(dbOrderData.customer_id);
+      }
 
       // 3. Record Transaction if paid
       if (orderData.payment_status === 'paid' && orderData.payment_method) {
@@ -176,7 +182,15 @@ class OrdersService {
       `Order #${id} — ${action} by ${userName}`,
       'order', 'orders', id
     );
-    io.emit('activity_log_update');
+    // Recalculate customer analytics if order status changes (e.g. cancellation)
+    try {
+      const [orderRows] = await pool.execute('SELECT customer_id FROM orders WHERE id = ?', [id]);
+      if (orderRows.length > 0 && orderRows[0].customer_id) {
+        await customerService.recalculateCustomerAnalytics(orderRows[0].customer_id);
+      }
+    } catch (err) {
+      console.error('Failed to update analytics on status update:', err);
+    }
 
     return result;
   }
@@ -217,6 +231,11 @@ class OrdersService {
       );
 
       await connection.commit();
+
+      // Recalculate customer analytics after successful payment confirmation
+      if (order.customer_id) {
+        await customerService.recalculateCustomerAnalytics(order.customer_id);
+      }
 
       // Emit socket notification so kitchen/waiter updates instantly
       const io = getIO();

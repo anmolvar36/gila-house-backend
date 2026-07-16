@@ -7,6 +7,7 @@ router.use(authenticate);
 
 router.get('/favorites', customerController.getFavorites);
 router.post('/favorites', customerController.toggleFavorite);
+router.get('/profile', customerController.getProfile);
 router.put('/profile', customerController.updateProfile);
 
 module.exports = router;
