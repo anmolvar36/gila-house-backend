@@ -251,7 +251,6 @@ class OrdersService {
       io.emit('order_update', { id, status: 'Confirmed', payment_status: 'paid' });
       io.to('chef').emit('new_kitchen_ticket', { orderId: id });
       
-      const notificationService = require('../../services/notification.service');
       await notificationService.createNotification({
         notification_type: 'ORDER',
         message: `Order #${id} Paid & Confirmed`,
