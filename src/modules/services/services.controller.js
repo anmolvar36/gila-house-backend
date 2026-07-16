@@ -13,6 +13,7 @@ class ServiceController {
         price: parseFloat(s.price_per_person || s.price || 0),
         notes: s.description || s.notes,
         description: s.description || s.notes,
+        image: s.image || null,
         icon: s.service_type?.toLowerCase().includes('shuttle') ? '🚐' : 
               s.service_type?.toLowerCase().includes('tour') ? '🗺️' :
               s.service_type?.toLowerCase().includes('cruise') ? '🚤' :
@@ -27,7 +28,7 @@ class ServiceController {
 
   async createService(req, res) {
     try {
-      const { name, transport, price, notes } = req.body;
+      const { name, transport, price, notes, image } = req.body;
       
       if (!name || !transport || !price) {
         return res.status(400).json({ success: false, message: 'Name, Transport and Price are required' });
@@ -37,12 +38,13 @@ class ServiceController {
         service_name: name,
         service_type: transport,
         price_per_person: price,
-        description: notes
+        description: notes,
+        image: image || null
       });
 
       res.status(201).json({ 
         success: true, 
-        data: { id, name, transport, price, notes } 
+        data: { id, name, transport, price, notes, image } 
       });
     } catch (error) {
       console.error('Error creating service:', error);
