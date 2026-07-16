@@ -184,9 +184,9 @@ class DashboardService {
    * Get recent activity logs
    */
   async getActivityLogs(limit = 20) {
-    const [rows] = await pool.execute(
-      'SELECT id, message, type, entity_type, entity_id, created_at FROM activity_logs ORDER BY created_at DESC LIMIT ?',
-      [limit]
+    const parsedLimit = parseInt(limit, 10) || 20;
+    const [rows] = await pool.query(
+      `SELECT id, message, type, entity_type, entity_id, created_at FROM activity_logs ORDER BY created_at DESC LIMIT ${parsedLimit}`
     );
     return rows;
   }

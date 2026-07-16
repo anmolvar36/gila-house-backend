@@ -20,6 +20,7 @@ const serviceRoutes = require('../modules/services/services.routes');
 const serviceBookingRoutes = require('../modules/services/service-bookings.routes');
 const settingsRoutes = require('../modules/settings/settings.routes');
 const paymentRoutes = require('./payment.routes');
+const couponRoutes = require('../modules/coupons/coupons.routes');
 
 const upload = require('../middleware/upload.middleware');
 
@@ -42,6 +43,7 @@ router.use('/services', serviceRoutes);
 router.use('/service-bookings', serviceBookingRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/payment', paymentRoutes);
+router.use('/coupons', couponRoutes);
 
 // Generic upload route
 router.post('/upload', upload.single('menu'), (req, res) => {
