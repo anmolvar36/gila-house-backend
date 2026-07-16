@@ -54,7 +54,7 @@ class BillingModel extends BaseModel {
 
   async findByReservationId(reservationId) {
     const sql = `
-      SELECT b.*, g.full_name as guestName, g.phone, 
+      SELECT b.*, g.full_name as guestName, g.phone, rb.check_in, rb.check_out,
              COALESCE(rm.room_name, rm.room_code, 'N/A') as roomName
       FROM guest_billing b 
       JOIN guests g ON b.guest_id = g.id 
@@ -76,6 +76,8 @@ class BillingModel extends BaseModel {
       ...row,
       guestName: row.guestName,
       roomName: row.roomName,
+      checkIn: row.check_in,
+      checkOut: row.check_out,
       total: parseFloat(row.total_charges),
       status: row.billing_status === 'settled' ? 'Settled' : 'Open',
       items: charges.map(c => ({
