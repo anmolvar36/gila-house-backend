@@ -81,6 +81,21 @@ class ConciergeService {
     const [ticketRows] = await pool.execute('SELECT * FROM support_tickets WHERE id = ?', [ticketId]);
     return ticketRows[0];
   }
+
+  async deleteMessage(messageId) {
+    const [msgRows] = await pool.execute('SELECT ticket_id FROM support_messages WHERE id = ?', [messageId]);
+    if (msgRows.length === 0) return false;
+    const ticketId = msgRows[0].ticket_id;
+
+    const sql = 'DELETE FROM support_messages WHERE id = ?';
+    await pool.execute(sql, [messageId]);
+
+    const io = getIO();
+    io.to(`ticket_${ticketId}`).emit('delete_message', { id: Number(messageId), ticketId });
+    io.to('staff').emit('delete_message', { id: Number(messageId), ticketId });
+
+    return true;
+  }
 }
 
 module.exports = new ConciergeService();

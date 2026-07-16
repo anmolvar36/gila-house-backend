@@ -106,6 +106,19 @@ class ConciergeController {
       res.status(500).json({ success: false, message: err.message });
     }
   }
+
+  async deleteMessage(req, res) {
+    try {
+      const { id } = req.params;
+      const success = await conciergeService.deleteMessage(id);
+      res.json({
+        success: true,
+        message: 'Message deleted successfully'
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
 }
 
 module.exports = new ConciergeController();
