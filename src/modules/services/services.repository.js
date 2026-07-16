@@ -31,10 +31,10 @@ class ServiceRepository {
   }
 
   async createService(data) {
-    const { service_name, service_type, description, price_per_person } = data;
+    const { service_name, service_type, description, price_per_person, image } = data;
     const [result] = await pool.query(
-      'INSERT INTO services (service_name, service_type, description, price_per_person) VALUES (?, ?, ?, ?)',
-      [service_name, service_type, description, price_per_person]
+      'INSERT INTO services (service_name, service_type, description, price_per_person, image) VALUES (?, ?, ?, ?, ?)',
+      [service_name, service_type, description, price_per_person, image || null]
     );
     return result.insertId;
   }
