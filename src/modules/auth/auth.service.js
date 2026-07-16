@@ -86,14 +86,24 @@ class AuthService {
       throw new Error('Account is not active');
     }
 
+    const sessionRole = 'customer';
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role_name },
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: sessionRole,
+        login_method: 'google' 
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE }
     );
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
+
+    // Override the returned role so frontend routes correctly to customer dashboard
+    userWithoutPassword.role_name = sessionRole;
 
     return {
       user: userWithoutPassword,
