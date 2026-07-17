@@ -41,7 +41,7 @@ class MenuModel extends BaseModel {
     
     if (!categoryId && category) {
       // Clean up category name (remove "All Items" if it was sent by mistake)
-      const cleanCategory = category === 'All Items' ? 'General' : category;
+      const cleanCategory = category === 'All Items' ? 'Bar' : category;
       
       const [catRows] = await pool.execute(
         'SELECT id FROM menu_categories WHERE category_name = ? AND deletedAt IS NULL',
@@ -96,7 +96,7 @@ class MenuModel extends BaseModel {
 
     // Resolve Category if name is provided
     if (category && !category_id) {
-      const cleanCategory = category === 'All Items' ? 'General' : category;
+      const cleanCategory = category === 'All Items' ? 'Bar' : category;
       const [catRows] = await pool.execute(
         'SELECT id FROM menu_categories WHERE category_name = ? AND deletedAt IS NULL',
         [cleanCategory]
