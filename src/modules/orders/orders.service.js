@@ -60,6 +60,7 @@ class OrdersService {
       service_charge_amount: serviceChargeAmount,
       grand_total: grandTotal,
       payment_status: orderData.payment_status || 'pending',
+      payment_method: orderData.payment_method || null,
       order_status: orderData.order_status || (orderData.payment_status === 'paid' ? 'Confirmed' : 'Waiting Payment'),
       assigned_waiter: orderData.assigned_waiter,
       assigned_chef: orderData.assigned_chef
@@ -108,7 +109,11 @@ class OrdersService {
           'card': 'card', 'Card': 'card',
           'qr_code': 'qr_code', 'QR Code': 'qr_code', 'qr code': 'qr_code',
           'bank': 'bank_transfer', 'Bank': 'bank_transfer', 'bank_transfer': 'bank_transfer',
-          'upi': 'upi', 'UPI': 'upi'
+          'upi': 'upi', 'UPI': 'upi',
+          'google pay': 'google_pay', 'Google Pay': 'google_pay',
+          'apple pay': 'apple_pay', 'Apple Pay': 'apple_pay',
+          'online': 'online', 'Online': 'online',
+          'cashier': 'cashier', 'Cashier': 'cashier', 'Card at Cashier': 'cashier'
         };
         const dbMethod = methodMap[orderData.payment_method] || 'cash';
         try {
