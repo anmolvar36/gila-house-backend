@@ -50,11 +50,9 @@ router.post('/upload', upload.single('menu'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No file uploaded' });
   }
-  // Construct the public URL for the uploaded file
-  // multer path will be something like 'src/uploads/menu/123.jpg' or 'src\uploads\menu\123.jpg'
-  // We want to return '/uploads/menu/123.jpg'
-  const filename = req.file.filename;
-  const imageUrl = `/uploads/menu/${filename}`;
+  
+  // Cloudinary URL is available in req.file.path
+  const imageUrl = req.file.path;
   
   res.json({ success: true, url: imageUrl });
 });
