@@ -37,7 +37,7 @@ class PaymentController {
         guestName,
         email,
         phone,
-        amount,
+        amount: Math.round(amount),
         description,
         paymentMethods
       });
@@ -65,7 +65,7 @@ class PaymentController {
 
       const result = await paymentService.createQrCode({
         bookingId,
-        amount,
+        amount: Math.round(amount),
         description
       });
 
