@@ -47,7 +47,22 @@ class CouponsController {
       if (!code) {
         return sendError(res, 'Coupon code is required', 400);
       }
-      const result = await couponsService.validateCoupon(code, parseFloat(cart_total) || 0);
+
+      // Optional JWT authentication to identify customer/user
+      let userId = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          userId = decoded.id;
+        } catch (e) {
+          // ignore parsing error to allow fallback
+        }
+      }
+
+      const result = await couponsService.validateCoupon(code, parseFloat(cart_total) || 0, userId);
       return sendSuccess(res, result.message, result);
     } catch (error) {
       return sendError(res, error.message, 400);

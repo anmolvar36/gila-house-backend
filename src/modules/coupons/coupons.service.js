@@ -33,7 +33,7 @@ class CouponsService {
     await pool.execute('DELETE FROM coupons WHERE id = ?', [id]);
   }
 
-  async validateCoupon(code, cartTotal) {
+  async validateCoupon(code, cartTotal, userId = null) {
     const coupon = await this.getCouponByCode(code);
     
     if (!coupon) {
@@ -42,6 +42,16 @@ class CouponsService {
 
     if (!coupon.is_active) {
       throw new Error('This coupon is no longer active');
+    }
+
+    if ((coupon.code === 'FREEDESSERT' || coupon.code === 'HAPPYHOUR') && userId) {
+      const [orders] = await pool.execute(
+        "SELECT id FROM orders WHERE user_id = ? AND order_status != 'cancelled'",
+        [userId]
+      );
+      if (orders.length > 0) {
+        throw new Error('This coupon is only valid for your first order!');
+      }
     }
 
     if (cartTotal < parseFloat(coupon.min_order_amount)) {

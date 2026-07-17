@@ -24,7 +24,8 @@ async function initCoupons() {
       VALUES 
       ('GILA50', 'flat', 50.00, 200.00, NULL),
       ('FIRST10', 'percentage', 10.00, 0, 100.00),
-      ('FREEDESSERT', 'flat', 0.00, 0, NULL)
+      ('FREEDESSERT', 'flat', 0.00, 0, NULL),
+      ('HAPPYHOUR', 'percentage', 20.00, 0, NULL)
     `;
     
     await pool.execute(seedQuery);
