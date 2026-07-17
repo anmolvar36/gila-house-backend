@@ -9,5 +9,6 @@ router.get('/favorites', customerController.getFavorites);
 router.post('/favorites', customerController.toggleFavorite);
 router.get('/profile', customerController.getProfile);
 router.put('/profile', customerController.updateProfile);
+router.post('/redeem', customerController.redeemReward);
 
 module.exports = router;

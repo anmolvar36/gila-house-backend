@@ -168,6 +168,73 @@ class CustomerController {
       return sendError(res, err.message);
     }
   }
+
+  async redeemReward(req, res) {
+    try {
+      const { rewardTitle, pointsCost } = req.body;
+      const userId = req.user.id;
+      const userEmail = req.user.email;
+
+      if (!rewardTitle || !pointsCost) {
+        return sendError(res, 'Reward title and points cost are required', 400);
+      }
+
+      // Get user's guest profile to check points
+      const [guests] = await pool.execute(
+        'SELECT id, loyalty_points FROM guests WHERE email = ? AND deletedAt IS NULL',
+        [userEmail]
+      );
+
+      if (guests.length === 0) {
+        return sendError(res, 'Guest profile not found', 404);
+      }
+
+      const guest = guests[0];
+      const currentPoints = guest.loyalty_points || 0;
+
+      if (currentPoints < pointsCost) {
+        return sendError(res, 'Insufficient loyalty points', 400);
+      }
+
+      // Deduct points
+      const newPoints = currentPoints - pointsCost;
+      await pool.execute(
+        'UPDATE guests SET loyalty_points = ? WHERE id = ?',
+        [newPoints, guest.id]
+      );
+
+      // Generate a coupon code
+      const titleAbbr = rewardTitle.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase();
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
+      const couponCode = `RW-${titleAbbr}-${randomCode}`;
+
+      // Insert coupon code into the coupons table
+      let discountType = 'percentage';
+      let discountValue = 100.00; // default for "Free item" is 100% off
+      let minOrderAmount = 0.00;
+      let maxDiscountAmount = null;
+
+      if (rewardTitle.toLowerCase().includes('voucher')) {
+        discountType = 'flat';
+        discountValue = 50.00; // e.g. Rp 50.000 flat discount
+      }
+
+      await pool.execute(
+        `INSERT INTO coupons (code, discount_type, discount_value, min_order_amount, max_discount_amount, is_active)
+         VALUES (?, ?, ?, ?, ?, 1)`,
+        [couponCode, discountType, discountValue, minOrderAmount, maxDiscountAmount]
+      );
+
+      return sendSuccess(res, 'Reward redeemed successfully', {
+        couponCode,
+        newPoints,
+        rewardTitle
+      });
+
+    } catch (err) {
+      return sendError(res, err.message);
+    }
+  }
 }
 
 module.exports = new CustomerController();
