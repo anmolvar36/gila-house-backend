@@ -44,7 +44,7 @@ class CouponsService {
       throw new Error('This coupon is no longer active');
     }
 
-    if ((coupon.code === 'FREEDESSERT' || coupon.code === 'HAPPYHOUR') && userId) {
+    if (coupon.code === 'FREEDESSERT' && userId) {
       const [orders] = await pool.execute(
         "SELECT id FROM orders WHERE user_id = ? AND order_status != 'cancelled'",
         [userId]
