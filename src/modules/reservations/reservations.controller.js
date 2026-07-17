@@ -3,15 +3,16 @@ const reservationsService = require('./reservations.service');
 class ReservationsController {
   async getAllReservations(req, res) {
     try {
-      let { status, date, customerEmail } = req.query;
+      let { status, date, customerEmail, customerName } = req.query;
       
       // Enforce data privacy: Customers can ONLY see their own reservations
       const userRole = (req.user?.role_name || '').toLowerCase().trim();
       if (userRole === 'customer') {
         customerEmail = req.user.email;
+        customerName = req.user.full_name;
       }
 
-      const reservations = await reservationsService.getAllReservations({ status, date, customerEmail });
+      const reservations = await reservationsService.getAllReservations({ status, date, customerEmail, customerName });
       res.json({
         success: true,
         message: 'Reservations fetched successfully',

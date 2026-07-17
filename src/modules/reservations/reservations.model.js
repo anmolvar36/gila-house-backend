@@ -40,9 +40,17 @@ class ReservationsModel extends BaseModel {
       params.push(filters.date);
     }
 
-    if (filters.customerEmail) {
-      sql += ` AND g.email = ?`;
-      params.push(filters.customerEmail);
+    if (filters.customerEmail || filters.customerName) {
+      if (filters.customerEmail && filters.customerName) {
+        sql += ` AND (g.email = ? OR g.full_name = ?)`;
+        params.push(filters.customerEmail, filters.customerName);
+      } else if (filters.customerEmail) {
+        sql += ` AND g.email = ?`;
+        params.push(filters.customerEmail);
+      } else if (filters.customerName) {
+        sql += ` AND g.full_name = ?`;
+        params.push(filters.customerName);
+      }
     }
 
     sql += ` ORDER BY r.id DESC`;
