@@ -173,6 +173,20 @@ class OrdersService {
       message: `Order #${id} is now ${status}`,
       targetRole: status === 'Ready' ? 'WAITER' : 'ADMIN'
     });
+
+    try {
+      const [orderRows] = await pool.execute('SELECT user_id, order_number FROM orders WHERE id = ?', [id]);
+      if (orderRows.length > 0 && orderRows[0].user_id) {
+        await notificationService.createNotification({
+          user_id: orderRows[0].user_id,
+          notification_type: 'ORDER_UPDATE',
+          message: `Your order #${orderRows[0].order_number || id} is now ${status}!`,
+          targetRole: 'CUSTOMER'
+        });
+      }
+    } catch (err) {
+      console.error('Failed to notify customer of order status update:', err);
+    }
     
     let action = 'Status Updated';
     if (status === 'pending') action = 'Sent to Kitchen';

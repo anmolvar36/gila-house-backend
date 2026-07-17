@@ -27,6 +27,11 @@ const initSocket = (server) => {
       console.log(`User joined room: ${room}`);
     });
 
+    socket.on('join_role', (role) => {
+      socket.join(role);
+      console.log(`User joined role room: ${role}`);
+    });
+
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.id}`);
     });
