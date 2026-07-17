@@ -1,21 +1,27 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
+require('dotenv').config();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    let folder = 'src/uploads/';
-    if (file.fieldname === 'menu') folder += 'menu/';
-    else if (file.fieldname === 'avatar') folder += 'profiles/';
-    else if (file.fieldname === 'qr') folder += 'qr/';
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    let folderName = 'restaurant-pos';
+    if (file.fieldname === 'menu') folderName = 'restaurant-pos/menu';
+    else if (file.fieldname === 'avatar') folderName = 'restaurant-pos/profiles';
+    else if (file.fieldname === 'qr') folderName = 'restaurant-pos/qr';
     
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
-    }
-    cb(null, folder);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    return {
+      folder: folderName,
+      resource_type: 'auto', // Important for handling video/audio, not just images
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp3', 'mp4', 'webm'],
+    };
   }
 });
 
@@ -27,14 +33,14 @@ const fileFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    cb(new Error('Only images and audio files are allowed'), false);
+    cb(new Error('Only images, audio, and video files are allowed'), false);
   }
 };
 
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 module.exports = upload;
